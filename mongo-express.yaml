@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo-express
+  labels:
+    app: mongo-express
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongo-express
+  template:
+    metadata:
+      labels:
+        app: mongo-express
+    spec:
+      containers:
+        - name: mongo-express
+          image: mongo-express
+          ports:
+            - containerPort: 8081
+          env:
+            - name: ME_CONFIG_MONGODB_ADMINISTRATOR
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: mongo-root-username
+            - name: ME_CONFIG_MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: mongo-root-password
+            - name: ME_CONFIG_MONGODB_SERVER
+              valueFrom:
+                configMapKeyRef:
+                  name: mongodb-config
+                  key: database_url
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo-express
+  labels:
+    app: mongo-express
+spec:
+  selector:
+    app: mongo-express
+  type: LoadBalancer # LoadBalancer is used for internal server communication
+  ports:
+    - protocol: TCP
+      port: 8081
+      targetPort: 8081
+      nodePort: 30007 # NodePort is used for external server communication and it has a range of 30000-32767
